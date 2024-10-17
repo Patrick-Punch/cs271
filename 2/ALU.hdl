@@ -41,5 +41,24 @@ CHIP ALU {
         ng;      // if (out < 0)  equals 1, else 0
 
     PARTS:
-    //// Replace this comment with your code.
-}
+    Mux16(a=x, b=false, sel=zx, out=ZEROx);  // Zero the x input if zx is true
+    Not16(in=ZEROx, out=NOTx);
+    Mux16(a=ZEROx, b=NOTx, sel=nx, out=INVx); // Negate the zeroed x if nx is true
+    Mux16(a=y, b=false, sel=zy, out=ZEROy);  // Zero the y input if zy is true
+    Not16(in=ZEROy, out=noty);
+    Mux16(a=ZEROy, b=noty, sel=ny, out=INVy); // Negate the zeroed y input if ny is true
+    Add16(a=INVx, b=INVy, out=xADDy);         // If f == 1, compute x + y
+    And16(a=INVx, b=INVy, out=xANDy);         // If f == 0, compute x & 
+    Mux16(a=xANDy, b=xADDy, sel=f, out=result); // Choose + or & based on f
+
+    Not16(in=result, out=NOTresult);          // Negate the operation result if negout is true
+    Mux16(a=result, b=NOTresult, sel=no, out=out, // Output the result or its negation based on negout
+      out[0..7] = zeroresultR,
+      out[8..15] = zeroresultL,
+      out[15] = ng);                       // Set the most significant as the negative flag
+
+    Or8Way(in=zeroresultR, out=result1); 
+    Or8Way(in=zeroresultL, out=result2);
+    Or(a=result1, b=result2, out=NOTzeroresult); // Determine if output is non-zero
+    Not(in=NOTzeroresult, out=zeroresult);     // Set the zero flag to 1 if output is zero, else 0
+   }
