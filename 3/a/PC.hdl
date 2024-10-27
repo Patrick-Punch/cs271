@@ -10,9 +10,13 @@
  * else              out(t+1) = out(t)
  */
 CHIP PC {
-    IN in[16],inc, load, reset;
+    IN in[16], reset, load, inc;
     OUT out[16];
     
     PARTS:
-    //// Replace this comment with your code.
+    Inc16(in=loop,out=inc1); // Increment by 1
+    Mux16(a=loop,b=inc1,sel=inc,out=incOut); // Choose to use new num or loop num based on inc
+    Mux16(a=incOut,b=in,sel=load,out=loadOut); // if load is on use a new number from in[16], else continue
+    Mux16(a=loadOut,b=false,sel=reset,out=regOut); // Check for reset
+    Register(in=regOut,load=true,out=loop,out=out);
 }
