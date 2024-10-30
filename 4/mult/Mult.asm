@@ -20,6 +20,6 @@ D=M
 M=D+M // Add M[0] to the total product
 @1
 M=M-1 // Decrement M[1]
-@LOOP // Jump up to add again
+@LOOP
 (IS_ZERO)
 0;JMP
