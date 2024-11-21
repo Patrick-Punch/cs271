@@ -31,6 +31,38 @@ CHIP CPU {
         addressM[15],    // Address in data memory (of M)
         pc[15];          // address of next instruction
 
-    PARTS:
-	//// Replace this comment with your code.
+    PARTS:    
+    // Decode Instruction
+    Not(in=instruction[15], out=Atype);
+    And(a=instruction[15], b=true, out=Ctype);
+
+    // A register
+    Mux16(a=ALUresult, b=instruction, sel=Atype, out=loadAreg); // Load either ALU result or instruction into A register 
+    And(a=Ctype, b=instruction[5], out=loadAforC);
+    Or(a=Atype, b=loadAforC, out=loadA); // Load A for A instructions or C instructions
+    ARegister(in=loadAreg, load=loadA, out=regAout, out[0..14]=addressM);
+
+    // D register
+    Mux16(a=regAout, b=inM, sel=instruction[12], out=regOrMem); // Select A register value or Memory Value
+    ALU(x=regDout, y=regOrMem, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], 
+    f=instruction[7], no=instruction[6], out=ALUresult, zr=isZero, ng=isNeg, out=outM); // Compute logic operation based on control bits
+    And(a=Ctype, b=instruction[3], out=writeM); // If it is a C type instruction, write instruction[3] to memory    
+    And(a=Ctype, b=instruction[4], out=loadD);
+    DRegister(in=ALUresult, load=loadD, out=regDout); // Load D reg with ALU output for C instruction
+
+    // PC
+    Or(a=isZero, b=isNeg, out=leqzero); // check if ALU isZero or isNeg <= 0
+    Not(in=leqzero, out=posout); // if ALU isZero or isNeg !<= 0, out > 0
+
+    // Jump conditions
+    And(a=instruction[0], b=posout, out=JGT);
+    And(a=instruction[1], b=isZero, out=JEQ);
+    And(a=instruction[2], b=isNeg, out=JLT);
+    Or(a=JEQ, b=JLT, out=JLE);
+    Or(a=JGT, b=JLE, out=JMP);
+    And(a=JMP, b=Ctype, out=jump); // If the C instruction specifies to jump, jump
+    Not(in=jump, out=notJump);	// Increment the counter if not jumping
+
+    // Update PC
+    PC(in=regAout, load=jump, inc=notJump, reset=reset, out[0..14]=pc);   
 }
